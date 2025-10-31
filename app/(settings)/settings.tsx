@@ -93,7 +93,7 @@ export default function SettingsIndex() {
           icon: <InfoIcon />,
           papicon: <Papicons name={"Info"} />,
           color: "#797979",
-          onPress: () => router.navigate("/(settings)/about")
+          onPress: () => router.navigate("./about")
         }
       ]
     },
@@ -146,9 +146,18 @@ export default function SettingsIndex() {
           icon: <InfoIcon />,
           color: "#FF6B35",
           onPress: () => router.navigate("/devmode")
+        },
+        {
+          title: t('Wrapped'),
+          description: t('Recap'),
+          papicon: <Papicons name={"Archive"} />,
+          icon: <HeartIcon />,
+          color: "#EFA400",
+          onPress: () => router.navigate("../(features)/wrapped")
         }] : []),
       ]
     }] : []),
+
   ]
 
   const BigButtons: Array<{
