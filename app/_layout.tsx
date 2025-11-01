@@ -92,6 +92,15 @@ const CONSENT_SCREEN_OPTIONS = {
 
 } as const;
 
+const WRAPPED_SCREEN_OPTIONS = {
+  gesturesEnabled: false,
+  fullScreenGestureEnabled: false,
+  presentation: "fullScreenModal" as const,
+  backButtonVisible: false,
+  headerLargeTitle: false,
+  headerShown: false,
+} as const;
+
 const CHANGELOG_SCREEN_OPTIONS = {
   headerTitle: t("Changelog_Title"),
   headerLargeTitle: false,
@@ -309,6 +318,7 @@ const RootLayoutNav = React.memo(function RootLayoutNav() {
               <Stack.Screen name="page" />
               <Stack.Screen name="demo" options={DEMO_SCREEN_OPTIONS} />
               <Stack.Screen name="consent" options={CONSENT_SCREEN_OPTIONS} />
+              <Stack.Screen name="wrapped" options={WRAPPED_SCREEN_OPTIONS} />
               <Stack.Screen name="changelog" options={CHANGELOG_SCREEN_OPTIONS} />
               <Stack.Screen name="ai" options={AI_SCREEN_OPTIONS} />
               <Stack.Screen name="devmode" options={DEVMODE_SCREEN_OPTIONS} />

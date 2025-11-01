@@ -106,7 +106,15 @@ export default function SettingsIndex() {
           icon: <InfoIcon />,
           papicon: <Papicons name={"Check"} />,
           color: "#797979",
-          onPress: () => router.navigate("../consent")
+          onPress: () => router.navigate("/consent")
+        },
+        {
+          title: t('Wrapped'),
+          description: t('Recap'),
+          papicon: <Papicons name={"Archive"} />,
+          icon: <HeartIcon />,
+          color: "#EFA400",
+          onPress: () => router.navigate("/wrapped")
         },
         {
           title: t('Settings_Logout_Title'),
@@ -146,15 +154,8 @@ export default function SettingsIndex() {
           icon: <InfoIcon />,
           color: "#FF6B35",
           onPress: () => router.navigate("/devmode")
-        },
-        {
-          title: t('Wrapped'),
-          description: t('Recap'),
-          papicon: <Papicons name={"Archive"} />,
-          icon: <HeartIcon />,
-          color: "#EFA400",
-          onPress: () => router.navigate("../(features)/wrapped")
-        }] : []),
+        }
+        ] : []),
       ]
     }] : []),
 
