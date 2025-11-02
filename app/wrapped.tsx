@@ -1,7 +1,7 @@
 import { Papicons } from "@getpapillon/papicons";
 import { useTheme } from "@react-navigation/native";
 import { Plus } from "lucide-react-native";
-import React, { useEffect, useState, useMemo, useLayoutEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, Image, View } from "react-native";
 
 import DevModeNotice from "@/components/DevModeNotice";
@@ -99,6 +99,27 @@ useFocusEffect(
             {t("ONBOARDING_MAIN_TITLE")}
             </Typography>
           </Stack>
+        </Stack>
+        <Stack
+          style={{
+            padding: 20,
+            paddingBottom: insets.bottom + 20,
+          }}
+          gap={10}
+        >
+          <Button
+            title={t("ONBOARDING_START_BTN")}
+            onPress={() => {
+              router.back();
+            }}
+            style={{
+              backgroundColor: theme.dark ? colors.border : "black",
+            }}
+            size="large"
+            icon={
+              <Papicons name={"Butterfly"} />
+            }
+          />
         </Stack>
       </View>
     </ViewContainer>
