@@ -65,26 +65,30 @@ export async function getHomeworksFromCache(
 export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
   const db = getDatabaseInstance();
 
-  const weekNumber = getWeekNumberFromDate(homeworks[0].dueDate);
+  // Utilise le numéro de semaine ISO pour être cohérent avec les jours utilisés par l’EDT
+  const weekNumber = getISOWeekNumber(homeworks[0].dueDate);
   const { start, end } = getDateRangeOfWeek(weekNumber);
-  const dbHomeworks = await db.get<Homework>("homework")
+
+  // On récupère uniquement les devoirs de la semaine pour faire le diff
+  const dbHomeworks = await db
+    .get<Homework>("homework")
     .query(Q.where("dueDate", Q.between(start.getTime(), end.getTime())))
     .fetch();
 
   const homeworkIds: string[] = [];
   for (const hw of homeworks) {
+    // ancien ID (sans date dans la clé) + nouveau ID (avec date, mais sans l’heure)
     const oldId = generateId(hw.subject + hw.content + hw.createdByAccount);
     const id = generateId(
       hw.subject + hw.content + hw.createdByAccount + hw.dueDate.toDateString()
     );
-
     homeworkIds.push(oldId, id);
   }
 
+  // Supprime de la semaine ce qui n'est plus renvoyé par la source
   const homeworksToDelete = dbHomeworks.filter(
-    dbHomeworks => !homeworkIds.includes(dbHomeworks.homeworkId)
+    (dbHw) => !homeworkIds.includes(dbHw.homeworkId)
   );
-
   for (const homework of homeworksToDelete) {
     await homework.markAsDeleted();
   }
@@ -99,16 +103,19 @@ export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
       .get("homework")
       .query(Q.where("homeworkId", id))
       .fetch();
+
     const oldExisting = await db
       .get("homework")
       .query(Q.where("homeworkId", oldId))
       .fetch();
 
+    // Nettoyage des anciens IDs
     for (const oldRecord of oldExisting) {
       await oldRecord.markAsDeleted();
     }
 
     if (existing.length === 0) {
+      // Création
       await safeWrite(
         db,
         async () => {
@@ -118,7 +125,7 @@ export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
               homeworkId: id,
               subject: hw.subject,
               content: hw.content,
-              dueDate: hw.dueDate.getTime(),
+              dueDate: hw.dueDate.getTime(), // stocké en ms
               isDone: hw.isDone,
               returnFormat: hw.returnFormat,
               attachments: JSON.stringify(hw.attachments),
@@ -134,6 +141,7 @@ export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
         "addHomeworkToDatabase"
       );
     } else {
+      // Mise à jour: si l’heure a été inférée par l’EDT, elle sera reflétée ici
       const recordToUpdate = existing[0];
       await safeWrite(
         db,
@@ -143,7 +151,7 @@ export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
             Object.assign(homework, {
               subject: hw.subject,
               content: hw.content,
-              dueDate: hw.dueDate.getTime(),
+              dueDate: hw.dueDate.getTime(), // met bien à jour l'heure si elle change
               isDone: hw.isDone,
               returnFormat: hw.returnFormat,
               attachments: JSON.stringify(hw.attachments),
@@ -193,20 +201,26 @@ export async function updateHomeworkIsDone(
   );
 }
 
+// Plage [lundi 00:00, dimanche 23:59:59.999] pour un numéro de semaine ISO donné
 export function getDateRangeOfWeek(
   weekNumber: number,
   year = new Date().getFullYear()
 ) {
-  const janFirst = new Date(year, 0, 1);
-  const daysOffset = (weekNumber - 1) * 7;
-  const weekStart = new Date(janFirst.setDate(janFirst.getDate() + daysOffset));
-  const day = weekStart.getDay();
-  const diff = weekStart.getDate() - day + (day <= 4 ? 1 : 8);
-  const start = new Date(weekStart.setDate(diff));
+  // Trouver le jeudi de la semaine 1 (ISO) = 4 janvier, puis reculer/avancer pour obtenir le lundi de la semaine 1
+  const jan4 = new Date(year, 0, 4);
+  const jan4Day = (jan4.getDay() + 6) % 7; // 0 = lundi ... 6 = dimanche
+  const week1Monday = new Date(jan4);
+  week1Monday.setDate(jan4.getDate() - jan4Day);
+
+  const weekStart = new Date(week1Monday);
+  weekStart.setDate(week1Monday.getDate() + (weekNumber - 1) * 7);
+  const start = new Date(weekStart);
+  start.setHours(0, 0, 0, 0);
+
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
-  start.setHours(0, 0, 0, 0);
   end.setHours(23, 59, 59, 999);
+
   return { start, end };
 }
 
@@ -219,10 +233,19 @@ export function parseJsonArray(s: string): unknown[] {
   }
 }
 
-export function getWeekNumberFromDate(date: Date): number {
-  const startOfYear = new Date(date.getFullYear(), 0, 1);
-  const days = Math.floor(
-    (date.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24)
-  );
-  return Math.ceil((days + startOfYear.getDay() + 1) / 7);
+// Numéro de semaine ISO (lundi comme premier jour)
+export function getISOWeekNumber(date: Date): number {
+  const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  // Ajuster au jeudi de la semaine (ISO)
+  const day = (tmp.getUTCDay() + 6) % 7; // 0 = lundi
+  tmp.setUTCDate(tmp.getUTCDate() + 3 - day);
+  // Semaine 1: celle qui contient le 4 janvier
+  const week1 = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 4));
+  const week1Day = (week1.getUTCDay() + 6) % 7;
+  week1.setUTCDate(week1.getUTCDate() - week1Day);
+  const diffDays = Math.round((+tmp - +week1) / 86400000);
+  return 1 + Math.floor(diffDays / 7);
 }
+
+// Compat: alias si d’autres modules appellent encore getWeekNumberFromDate
+export const getWeekNumberFromDate = getISOWeekNumber;
