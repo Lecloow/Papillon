@@ -21,7 +21,8 @@ export async function safeWrite<T>(
     ]);
     return result;
   } catch (err) {
-    error(`🍉 Failed safe write operation "${operationName}":`, String(err));
+    const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    error(`🍉 Failed safe write operation "${operationName}": ${detail}`);
     throw err;
   }
 }

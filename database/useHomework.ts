@@ -143,7 +143,27 @@ export async function getHomeworksFromCache(
   }
 }
 
+let homeworkWriteQueue: Promise<void> = Promise.resolve();
+
 export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
+  const previous = homeworkWriteQueue;
+  let release!: () => void;
+  homeworkWriteQueue = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  await previous;
+  try {
+    await addHomeworkToDatabaseImpl(homeworks);
+  } finally {
+    release();
+  }
+}
+
+async function addHomeworkToDatabaseImpl(homeworks: SharedHomework[]) {
+  if (homeworks.length === 0) {
+    return;
+  }
+
   const db = getDatabaseInstance();
 
   const weekNumber = getWeekNumberFromDate(homeworks[0].dueDate);
@@ -193,8 +213,8 @@ export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
     if (existing.length === 0) {
       await safeWrite(
         db,
-        async () => {
-          await db.get("homework").create((record: Model) => {
+        () => {
+          db.get("homework").create((record: Model) => {
             const homework = record as Homework;
             Object.assign(homework, {
               homeworkId: id,
@@ -211,6 +231,7 @@ export async function addHomeworkToDatabase(homeworks: SharedHomework[]) {
               fromCache: true,
             });
           });
+          return Promise.resolve();
         },
         10000,
         "addHomeworkToDatabase"

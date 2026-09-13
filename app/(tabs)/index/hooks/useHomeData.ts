@@ -9,6 +9,7 @@ import { SecurityChallengeError } from '@/services/errors/SecurityChallengeError
 import { ServiceUnavailableError } from '@/services/errors/ServiceUnavailableError';
 import { getManager, initializeAccountManager } from "@/services/shared";
 import { Services } from '@/stores/account/types';
+import { Capabilities } from '@/services/shared/types';
 import { useSettingsStore } from '@/stores/settings';
 import { useAlert } from '@/ui/components/AlertProvider';
 import { getCurrentPeriod } from '@/utils/grades/helper/period';
@@ -36,8 +37,10 @@ export const useHomeData = () => {
 
   const fetchGrades = useCallback(async () => {
     const manager = getManager();
-    if (!manager) {
-      warn('Manager is null, skipping grades fetch');
+    if (
+      !manager ||
+      manager.getAvailableClients(Capabilities.GRADES).length === 0
+    ) {
       return;
     }
     const gradePeriods = await manager.getGradesPeriods();

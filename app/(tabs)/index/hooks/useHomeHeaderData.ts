@@ -5,6 +5,7 @@ import { Period } from '@/services/shared/grade';
 import { getCurrentPeriod } from '@/utils/grades/helper/period';
 import { useAccountStore } from '@/stores/account';
 import { Services } from '@/stores/account/types';
+import { Capabilities } from '@/services/shared/types';
 import { useNews } from '@/database/useNews';
 
 export const useHomeHeaderData = () => {
@@ -43,6 +44,13 @@ export const useHomeHeaderData = () => {
 
   useEffect(() => {
     const updateAttendance = async (manager: AccountManager) => {
+      if (
+        manager.getAvailableClients(Capabilities.ATTENDANCE_PERIODS).length === 0
+      ) {
+        setAttendances([]);
+        return;
+      }
+
       const periods = await manager.getAttendancePeriods();
       attendancesPeriodsRef.current = periods;
 
